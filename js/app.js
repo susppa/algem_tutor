@@ -267,7 +267,7 @@ document.addEventListener('DOMContentLoaded', () => {
       setActiveTab('practice');
       showModulesView();
       renderModules();
-    } else if (hash === 'exam' || hash.startsWith('task-')) {
+    } else if (hash === 'exam' || hash.startsWith('task-') || hash.startsWith('prob-') || hash.startsWith('algo-')) {
       setActiveTab('exam');
       showExamView(hash);
     } else if (hash.startsWith('topic-')) {
@@ -362,10 +362,13 @@ document.addEventListener('DOMContentLoaded', () => {
         examView.dataset.rendered = 'true';
       }
 
-      if (targetId && targetId.startsWith('task-')) {
+      if (targetId && (targetId.startsWith('task-') || targetId.startsWith('prob-') || targetId.startsWith('algo-'))) {
         setTimeout(() => {
           const el = document.getElementById(targetId);
           if (el) {
+            if (el.tagName === 'DETAILS' && !el.open) {
+              el.open = true;
+            }
             el.scrollIntoView({ behavior: 'smooth', block: 'start' });
           }
         }, 80);
