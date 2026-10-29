@@ -15,6 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // DOM Elements
   const catalogView = document.getElementById('catalogView');
   const topicView = document.getElementById('topicView');
+  const examView = document.getElementById('examView');
   const modulesGrid = document.getElementById('modulesGrid');
   const sidebarContent = document.getElementById('sidebarContent');
   const topicReader = document.getElementById('topicReader');
@@ -77,7 +78,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (searchClearBtn) {
       searchClearBtn.addEventListener('click', () => {
         clearSearch();
-        if (state.currentView === 'modules') {
+        if (state.activeTab === 'exam') {
+          showExamView();
+        } else if (state.currentView === 'modules') {
           renderModules();
         }
       });
@@ -108,7 +111,11 @@ document.addEventListener('DOMContentLoaded', () => {
           renderModules();
         } else {
           if (searchDropdown) searchDropdown.style.display = 'none';
-          renderModules();
+          if (state.activeTab === 'exam') {
+            showExamView();
+          } else {
+            renderModules();
+          }
         }
       }, 120);
     });
@@ -156,15 +163,41 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       }
       return inTitle || inKeywords || inTopic || inSections;
-    }).slice(0, 8);
+    }).slice(0, 6);
 
-    if (matches.length === 0) {
+    // Also search across exam tasks if EXAM_DATA exists
+    const examMatches = [];
+    if (window.EXAM_DATA && window.EXAM_DATA.tasks) {
+      window.EXAM_DATA.tasks.forEach(t => {
+        if (
+          t.title.toLowerCase().includes(q) ||
+          t.code.toLowerCase().includes(q) ||
+          t.topic.toLowerCase().includes(q) ||
+          (t.num + '').includes(q) ||
+          'контрольная'.includes(q)
+        ) {
+          examMatches.push(t);
+        }
+      });
+    }
+
+    if (matches.length === 0 && examMatches.length === 0) {
       searchDropdown.innerHTML = `<div class="search-dropdown-empty">Ничего не найдено по запросу «${q}»</div>`;
       searchDropdown.style.display = 'block';
       return;
     }
 
-    searchDropdown.innerHTML = matches.map(item => {
+    let html = '';
+    if (examMatches.length > 0) {
+      html += examMatches.map(t => `
+        <a href="#${t.id}" class="search-dropdown-item exam-match">
+          <span class="item-title">🔥 ${t.code} — ${t.title}</span>
+          <span class="search-type-badge exam">Контрольная • Задание ${t.num}</span>
+        </a>
+      `).join('');
+    }
+
+    html += matches.map(item => {
       const mod = COURSE_DATA.modules.find(m => m.id === item.moduleId) || {};
       const typeLabel = item.type === 'practice' ? 'Практика' : 'Теория';
       return `
@@ -174,6 +207,8 @@ document.addEventListener('DOMContentLoaded', () => {
         </a>
       `;
     }).join('');
+
+    searchDropdown.innerHTML = html;
 
     searchDropdown.querySelectorAll('.search-dropdown-item').forEach(el => {
       el.addEventListener('click', () => {
@@ -197,6 +232,9 @@ document.addEventListener('DOMContentLoaded', () => {
       setActiveTab('practice');
       showModulesView();
       renderModules();
+    } else if (hash === 'exam' || hash.startsWith('task-')) {
+      setActiveTab('exam');
+      showExamView(hash);
     } else if (hash.startsWith('topic-')) {
       const topicId = hash.replace('topic-', '');
       showTopicView(topicId);
@@ -218,6 +256,7 @@ document.addEventListener('DOMContentLoaded', () => {
     state.currentView = 'modules';
     catalogView.style.display = 'block';
     topicView.style.display = 'none';
+    if (examView) examView.style.display = 'none';
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -242,10 +281,244 @@ document.addEventListener('DOMContentLoaded', () => {
 
     catalogView.style.display = 'none';
     topicView.style.display = 'block';
+    if (examView) examView.style.display = 'none';
 
     renderSidebar();
     renderTopicReader(item);
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // Switch View to Exam Guide
+  function showExamView(targetId) {
+    state.currentView = 'exam';
+    state.activeTab = 'exam';
+    setActiveTab('exam');
+
+    catalogView.style.display = 'none';
+    topicView.style.display = 'none';
+    if (examView) {
+      examView.style.display = 'block';
+      renderExamView();
+      renderExamMath();
+
+      if (targetId && targetId.startsWith('task-')) {
+        setTimeout(() => {
+          const el = document.getElementById(targetId);
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }, 80);
+      } else {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    }
+  }
+
+  // Render Full Exam View with 5 Tasks, Synopsis, Rules, and Collapsible Solutions
+  function renderExamView() {
+    if (!examView || !window.EXAM_DATA) return;
+    const d = EXAM_DATA;
+
+    examView.innerHTML = `
+      <!-- Exam Hero -->
+      <section class="exam-hero">
+        <div class="exam-hero-header">
+          <div class="exam-hero-title">
+            <h1>🔥 ${d.meta.title}</h1>
+            <p>${d.meta.subtitle}</p>
+          </div>
+          <div class="exam-hero-badges">
+            <span class="exam-badge exam-badge-date">📅 ${d.meta.date}</span>
+            <span class="exam-badge exam-badge-time">⏱️ ${d.meta.time}</span>
+            <span class="exam-badge exam-badge-count">📝 ${d.meta.tasksCount} типовых заданий</span>
+          </div>
+        </div>
+
+        <div class="exam-meta-grid">
+          <div class="exam-meta-box">
+            <h4>📌 Формат и регламент</h4>
+            <ul>
+              ${d.meta.rules.map(r => `<li>${r}</li>`).join('')}
+            </ul>
+          </div>
+          <div class="exam-meta-box">
+            <h4>🎯 Критерии строгости проверяющего</h4>
+            <ul>
+              ${d.meta.generalCriteria.map(c => `<li>${c}</li>`).join('')}
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- Quick Jump Nav Pills -->
+      <nav class="exam-nav-pills" aria-label="Быстрый переход к заданиям контрольной">
+        ${d.tasks.map(t => `
+          <a href="#${t.id}" class="exam-nav-pill">
+            <span class="pill-num">№${t.num}</span>
+            <span>${t.code} (${t.title})</span>
+          </a>
+        `).join('')}
+      </nav>
+
+      <!-- 5 Exam Task Cards -->
+      <div class="exam-tasks-container">
+        ${d.tasks.map(task => renderExamTaskCard(task)).join('')}
+      </div>
+    `;
+
+    // Attach click events on navigation pills to scroll smoothly
+    examView.querySelectorAll('.exam-nav-pill').forEach(pill => {
+      pill.addEventListener('click', (e) => {
+        const targetId = pill.getAttribute('href').replace('#', '');
+        const el = document.getElementById(targetId);
+        if (el) {
+          e.preventDefault();
+          history.pushState(null, null, `#${targetId}`);
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
+    });
+
+    // Attach details toggle listener so if user opens a spoiler, math renders cleanly
+    examView.querySelectorAll('.exam-spoiler').forEach(spoiler => {
+      spoiler.addEventListener('toggle', () => {
+        if (spoiler.open && window.renderMathInElement) {
+          renderMathInElement(spoiler, {
+            delimiters: [
+              { left: '$$', right: '$$', display: true },
+              { left: '$', right: '$', display: false }
+            ],
+            throwOnError: false
+          });
+        }
+      });
+    });
+  }
+
+  function renderExamTaskCard(task) {
+    return `
+      <article class="exam-task-card" id="${task.id}">
+        <div class="exam-task-header">
+          <div class="exam-task-title-wrap">
+            <span class="exam-task-num-badge">Задание ${task.num}</span>
+            <span class="exam-task-code-badge">${task.code}</span>
+            <h2 class="exam-task-title">${task.title}</h2>
+          </div>
+          <div style="font-size: 13px; color: var(--text-dim); font-weight: 500;">
+            ${task.topic}
+          </div>
+        </div>
+
+        <div class="exam-task-synopsis">
+          ${task.synopsis}
+        </div>
+
+        <!-- Theory & Practice Cross-Links -->
+        <div class="exam-links-box">
+          <div class="exam-links-header">
+            <span>🔗</span> Связанные материалы в базе знаний курса:
+          </div>
+          ${task.theoryLinks && task.theoryLinks.length > 0 ? `
+            <div class="exam-links-group">
+              <div class="exam-links-group-label">Теория:</div>
+              <div class="exam-links-pills">
+                ${task.theoryLinks.map(l => `
+                  <a href="#topic-${l.id}" class="exam-link-pill theory">
+                    <span>📖</span> ${l.title}
+                  </a>
+                `).join('')}
+              </div>
+            </div>
+          ` : ''}
+          ${task.practiceLinks && task.practiceLinks.length > 0 ? `
+            <div class="exam-links-group">
+              <div class="exam-links-group-label">Практика и алгоритмы:</div>
+              <div class="exam-links-pills">
+                ${task.practiceLinks.map(l => `
+                  <a href="#topic-${l.id}" class="exam-link-pill practice">
+                    <span>⚡</span> ${l.title}
+                  </a>
+                `).join('')}
+              </div>
+            </div>
+          ` : ''}
+        </div>
+
+        <!-- Formatting Checklist -->
+        <div class="exam-rules-box">
+          <h4>⚠️ Как оформить, чтобы учитель принял обязательно:</h4>
+          <ul>
+            ${task.formattingRules.map(r => `<li>${r}</li>`).join('')}
+          </ul>
+        </div>
+
+        <!-- Problems Spoilers -->
+        <div class="exam-problems-heading">
+          <span>📚</span> Типовые задачи с решениями для самопроверки (нажмите, чтобы развернуть):
+        </div>
+
+        <div class="exam-problems-list">
+          ${task.problems.map(prob => `
+            <details class="exam-spoiler" id="${prob.id}">
+              <summary>
+                <div class="spoiler-title">
+                  <span class="spoiler-label">${prob.label}</span>
+                </div>
+                <div class="spoiler-cta">
+                  Показать решение <span class="spoiler-arrow">▼</span>
+                </div>
+              </summary>
+              <div class="exam-spoiler-body">
+                <div class="exam-condition-box">
+                  <strong>Условие:</strong>
+                  <div>${prob.condition}</div>
+                </div>
+                <div class="exam-quick-answer">
+                  <strong>Краткий ответ для самопроверки:</strong>
+                  <div>${prob.quickAnswer}</div>
+                </div>
+                <div class="exam-solution-body">
+                  ${prob.fullSolution}
+                </div>
+                ${prob.examinerNotes ? `
+                  <div class="exam-examiner-callout">
+                    <span style="font-size: 16px;">💡</span>
+                    <div>
+                      <strong>На что смотрит преподаватель:</strong> ${prob.examinerNotes}
+                    </div>
+                  </div>
+                ` : ''}
+              </div>
+            </details>
+          `).join('')}
+        </div>
+      </article>
+    `;
+  }
+
+  function renderExamMath() {
+    if (!examView) return;
+    if (window.renderMathInElement) {
+      renderMathInElement(examView, {
+        delimiters: [
+          { left: '$$', right: '$$', display: true },
+          { left: '$', right: '$', display: false }
+        ],
+        throwOnError: false
+      });
+    } else {
+      window.addEventListener('load', () => {
+        if (window.renderMathInElement) {
+          renderMathInElement(examView, {
+            delimiters: [
+              { left: '$$', right: '$$', display: true },
+              { left: '$', right: '$', display: false }
+            ],
+            throwOnError: false
+          });
+        }
+      });
+    }
   }
 
   // Filter items for current active tab or search
