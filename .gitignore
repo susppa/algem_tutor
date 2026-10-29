@@ -27,3 +27,7 @@ my photos/
 scripts/
 __pycache__/
 *.py
+
+# Local configs and tokens
+.env*
+tg_config.json
