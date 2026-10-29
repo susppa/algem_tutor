@@ -753,3 +753,9 @@ const EXAM_DATA = {
     }
   ]
 };
+
+// Explicitly bind to global window in browser environments
+if (typeof window !== 'undefined') {
+  window.EXAM_DATA = EXAM_DATA;
+}
+

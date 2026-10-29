@@ -62,15 +62,22 @@ document.addEventListener('DOMContentLoaded', () => {
       window.location.hash = `#${state.activeTab}`;
     });
 
-    // Navigation Tabs (Теория vs Практика)
+    // Navigation Tabs (Теория vs Практика vs Контрольная)
     tabBtns.forEach(btn => {
       btn.addEventListener('click', () => {
         tabBtns.forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         state.activeTab = btn.dataset.tab;
         
-        // When switching tabs, return to modules overview of that tab
-        window.location.hash = `#${state.activeTab}`;
+        clearSearch();
+        if (state.activeTab === 'exam') {
+          showExamView();
+          window.location.hash = '#exam';
+        } else {
+          showModulesView();
+          renderModules();
+          window.location.hash = `#${state.activeTab}`;
+        }
       });
     });
 
@@ -167,8 +174,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Also search across exam tasks if EXAM_DATA exists
     const examMatches = [];
-    if (window.EXAM_DATA && window.EXAM_DATA.tasks) {
-      window.EXAM_DATA.tasks.forEach(t => {
+    const examTasks = (typeof EXAM_DATA !== 'undefined' && EXAM_DATA.tasks) ? EXAM_DATA.tasks : (typeof window !== 'undefined' && window.EXAM_DATA ? window.EXAM_DATA.tasks : null);
+    if (examTasks) {
+      examTasks.forEach(t => {
         if (
           t.title.toLowerCase().includes(q) ||
           t.code.toLowerCase().includes(q) ||
@@ -316,8 +324,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Render Full Exam View with 5 Tasks, Synopsis, Rules, and Collapsible Solutions
   function renderExamView() {
-    if (!examView || !window.EXAM_DATA) return;
-    const d = EXAM_DATA;
+    const d = (typeof EXAM_DATA !== 'undefined') ? EXAM_DATA : (typeof window !== 'undefined' ? window.EXAM_DATA : null);
+    if (!examView || !d) {
+      console.warn('EXAM_DATA or examView not found', { examView, d });
+      return;
+    }
 
     examView.innerHTML = `
       <!-- Exam Hero -->
