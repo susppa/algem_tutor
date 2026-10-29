@@ -1,0 +1,29 @@
+# OS files
+.DS_Store
+Thumbs.db
+
+# AI Chat Histories and Export Archives (КРИТИЧЕСКИ ВАЖНО)
+conversations*
+*.zip
+*.jsonl
+*.log
+
+# Исходные фотографии конспектов и лекций
+photos/
+my photos/
+*.jpg
+*.jpeg
+*.png
+*.heic
+*.HEIC
+
+# Исходные файлы бота и черновики
+бот-экзамен/
+??????-??????????????/
+*.md
+!README.md
+
+# Скрипты компиляции и парсинга
+scripts/
+__pycache__/
+*.py

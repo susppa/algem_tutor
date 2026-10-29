@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Алгем — База знаний по алгебре и геометрии</title>
+  
+  <!-- KaTeX for formula rendering -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
+
+  <!-- Academic Dark Stylesheet -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- Top Navigation Header -->
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="#" class="brand" id="brandLink">
+        <span>Алгем</span>
+      </a>
+
+      <!-- Search Box with Live Dropdown -->
+      <div class="search-wrapper">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="searchInput" class="search-input" placeholder="Поиск по курсу: Гаусс, базис, ранг, Муавр...">
+        <button type="button" class="search-clear-btn" id="searchClearBtn" title="Очистить поиск" style="display: none;">✕</button>
+        <div class="search-dropdown" id="searchDropdown" style="display: none;"></div>
+      </div>
+
+      <!-- Section Tabs: Strictly Theory & Practice -->
+      <nav class="nav-tabs">
+        <button class="tab-btn active" data-tab="theory" id="tabTheory">Теория</button>
+        <button class="tab-btn" data-tab="practice" id="tabPractice">Практика</button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Main Content Container -->
+  <main class="container">
+    
+    <!-- LEVEL 1: Modules Grid Overview (Каталог тем активного раздела) -->
+    <div id="catalogView" class="catalog-view">
+      <div class="catalog-header">
+        <div class="catalog-title">
+          <h1 id="catalogHeading">Теория</h1>
+          <p id="catalogSubheading">Определения, формулировки теорем и строгие математические доказательства</p>
+        </div>
+        <div class="catalog-stats" id="catalogStats">
+          Загрузка...
+        </div>
+      </div>
+
+      <!-- Modules Grid -->
+      <div class="modules-grid" id="modulesGrid">
+        <!-- Dynamically injected by js/app.js -->
+      </div>
+    </div>
+
+    <!-- LEVEL 2: Topic Detail View (Фокусное чтение выбранного материала) -->
+    <div id="topicView" class="topic-view">
+      <div class="topic-layout">
+        
+        <!-- Left Syllabus Sidebar -->
+        <aside class="syllabus-sidebar" id="syllabusSidebar">
+          <div class="sidebar-title">
+            <span>Программа раздела</span>
+            <button class="back-to-catalog" id="sidebarBackBtn">← Ко всем темам</button>
+          </div>
+          <div id="sidebarContent">
+            <!-- Dynamically injected syllabus tree -->
+          </div>
+        </aside>
+
+        <!-- Main Topic Reader -->
+        <article class="topic-reader" id="topicReader">
+          <!-- Dynamically injected topic content -->
+        </article>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <div>
+        <strong>Алгем</strong> • База знаний по алгебре и геометрии
+      </div>
+      <div class="footer-links">
+        <a href="#" id="footerBackLink">К списку модулей</a>
+        <a href="#top">Наверх ↑</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="js/data-glossary.js"></script>
+  <script src="js/data-course.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
