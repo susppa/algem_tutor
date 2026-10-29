@@ -5,11 +5,12 @@
 document.addEventListener('DOMContentLoaded', () => {
   // Application State
   const state = {
-    activeTab: 'theory',   // 'theory' | 'practice'
-    currentView: 'modules', // 'modules' | 'topic'
+    activeTab: 'theory',   // 'theory' | 'practice' | 'exam'
+    currentView: 'modules', // 'modules' | 'topic' | 'exam'
     activeModuleId: null,
     activeTopicId: null,
-    searchQuery: ''
+    searchQuery: '',
+    returnTab: null
   };
 
   // DOM Elements
@@ -25,6 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const sidebarBackBtn = document.getElementById('sidebarBackBtn');
   const brandLink = document.getElementById('brandLink');
   const footerBackLink = document.getElementById('footerBackLink');
+  const footerTopLink = document.getElementById('footerTopLink');
   const tabBtns = document.querySelectorAll('.tab-btn');
   const catalogHeading = document.getElementById('catalogHeading');
   const catalogSubheading = document.getElementById('catalogSubheading');
@@ -48,18 +50,37 @@ document.addEventListener('DOMContentLoaded', () => {
       window.location.hash = `#${state.activeTab}`;
     });
 
+    if (footerTopLink) {
+      footerTopLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+    }
+
     if (footerBackLink) {
       footerBackLink.addEventListener('click', (e) => {
         e.preventDefault();
         clearSearch();
-        window.location.hash = `#${state.activeTab}`;
+        if (state.returnTab === 'exam') {
+          const ret = state.returnTab;
+          state.returnTab = null;
+          window.location.hash = `#${ret}`;
+        } else {
+          window.location.hash = `#${state.activeTab}`;
+        }
       });
     }
 
     // Sidebar back button
     sidebarBackBtn.addEventListener('click', () => {
       clearSearch();
-      window.location.hash = `#${state.activeTab}`;
+      if (state.returnTab === 'exam') {
+        const ret = state.returnTab;
+        state.returnTab = null;
+        window.location.hash = `#${ret}`;
+      } else {
+        window.location.hash = `#${state.activeTab}`;
+      }
     });
 
     // Navigation Tabs (Теория vs Практика vs Контрольная)
@@ -70,6 +91,7 @@ document.addEventListener('DOMContentLoaded', () => {
         state.activeTab = btn.dataset.tab;
         
         clearSearch();
+        state.returnTab = null;
         if (state.activeTab === 'exam') {
           showExamView();
           window.location.hash = '#exam';
@@ -232,6 +254,11 @@ document.addEventListener('DOMContentLoaded', () => {
   function handleHashRouting() {
     const hash = window.location.hash.replace('#', '');
     
+    if (hash === 'top') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
     if (!hash || hash === 'theory') {
       setActiveTab('theory');
       showModulesView();
@@ -262,6 +289,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // Switch View to Modules Grid
   function showModulesView() {
     state.currentView = 'modules';
+    state.returnTab = null;
+    if (sidebarBackBtn) sidebarBackBtn.textContent = '← Ко всем темам';
+    if (footerBackLink) footerBackLink.textContent = 'К списку модулей';
     catalogView.style.display = 'block';
     topicView.style.display = 'none';
     if (examView) examView.style.display = 'none';
@@ -274,6 +304,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!item) {
       showModulesView();
       return;
+    }
+
+    // If navigated from exam view, save context
+    if (state.activeTab === 'exam' || state.currentView === 'exam') {
+      state.returnTab = 'exam';
     }
 
     // Set tab matching the item type
@@ -291,6 +326,15 @@ document.addEventListener('DOMContentLoaded', () => {
     topicView.style.display = 'block';
     if (examView) examView.style.display = 'none';
 
+    // Update back buttons label if coming from exam
+    if (state.returnTab === 'exam') {
+      sidebarBackBtn.textContent = '← Назад к контрольной 🔥';
+      if (footerBackLink) footerBackLink.textContent = 'Назад к контрольной 🔥';
+    } else {
+      sidebarBackBtn.textContent = '← Ко всем темам';
+      if (footerBackLink) footerBackLink.textContent = 'К списку модулей';
+    }
+
     renderSidebar();
     renderTopicReader(item);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -300,14 +344,23 @@ document.addEventListener('DOMContentLoaded', () => {
   function showExamView(targetId) {
     state.currentView = 'exam';
     state.activeTab = 'exam';
+    state.returnTab = null;
     setActiveTab('exam');
+
+    if (sidebarBackBtn) sidebarBackBtn.textContent = '← Ко всем темам';
+    if (footerBackLink) footerBackLink.textContent = 'К списку модулей';
 
     catalogView.style.display = 'none';
     topicView.style.display = 'none';
     if (examView) {
       examView.style.display = 'block';
-      renderExamView();
-      renderExamMath();
+
+      // Preserve open spoilers: only render HTML if not yet rendered!
+      if (!examView.dataset.rendered) {
+        renderExamView();
+        renderExamMath();
+        examView.dataset.rendered = 'true';
+      }
 
       if (targetId && targetId.startsWith('task-')) {
         setTimeout(() => {
