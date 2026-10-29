@@ -390,8 +390,8 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     });
 
-    // Attach details toggle listener so if user opens a spoiler, math renders cleanly
-    examView.querySelectorAll('.exam-spoiler').forEach(spoiler => {
+    // Attach details toggle listener so if user opens a spoiler or algorithm, math renders cleanly
+    examView.querySelectorAll('.exam-spoiler, .exam-algorithm-box').forEach(spoiler => {
       spoiler.addEventListener('toggle', () => {
         if (spoiler.open && window.renderMathInElement) {
           renderMathInElement(spoiler, {
@@ -423,6 +423,24 @@ document.addEventListener('DOMContentLoaded', () => {
         <div class="exam-task-synopsis">
           ${task.synopsis}
         </div>
+
+        <!-- Universal Algorithm Accordion ("Как решать") -->
+        ${task.algorithm ? `
+          <details class="exam-algorithm-box" id="algo-${task.id}">
+            <summary class="exam-algorithm-summary">
+              <div class="algo-summary-title">
+                <span class="algo-icon">💡</span>
+                <span class="algo-heading">Как решать: универсальный пошаговый алгоритм</span>
+              </div>
+              <div class="algo-summary-cta">
+                Развернуть алгоритм <span class="spoiler-arrow">▼</span>
+              </div>
+            </summary>
+            <div class="exam-algorithm-body">
+              ${task.algorithm}
+            </div>
+          </details>
+        ` : ''}
 
         <!-- Theory & Practice Cross-Links -->
         <div class="exam-links-box">

@@ -1238,6 +1238,148 @@ footer.site-footer {
   margin-bottom: 20px;
 }
 
+/* Universal Algorithm Accordion ("Как решать любое такое задание") */
+.exam-algorithm-box {
+  background: var(--bg-surface-elevated);
+  border: 1px solid rgba(74, 136, 232, 0.3);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius-md);
+  margin-bottom: 22px;
+  overflow: hidden;
+  transition: var(--transition);
+}
+
+.exam-algorithm-box:hover {
+  border-color: rgba(74, 136, 232, 0.5);
+}
+
+.exam-algorithm-box[open] {
+  border-color: var(--accent);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+}
+
+.exam-algorithm-summary {
+  padding: 14px 18px;
+  font-weight: 600;
+  font-size: 14.5px;
+  color: var(--text-main);
+  cursor: pointer;
+  user-select: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: rgba(74, 136, 232, 0.05);
+  list-style: none;
+}
+
+.exam-algorithm-summary::-webkit-details-marker {
+  display: none;
+}
+
+.algo-summary-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.algo-summary-title .algo-icon {
+  font-size: 16px;
+}
+
+.algo-summary-title .algo-heading {
+  color: #93c5fd;
+  font-weight: 700;
+}
+
+.algo-summary-cta {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.exam-algorithm-box[open] .algo-summary-cta {
+  color: var(--text-muted);
+}
+
+.exam-algorithm-body {
+  padding: 20px 22px;
+  border-top: 1px solid var(--border-subtle);
+  background: var(--bg-surface);
+  line-height: 1.6;
+}
+
+.algo-step {
+  display: flex;
+  gap: 14px;
+  margin-bottom: 16px;
+  align-items: flex-start;
+}
+
+.algo-step:last-child {
+  margin-bottom: 0;
+}
+
+.algo-step-num {
+  background: rgba(74, 136, 232, 0.15);
+  color: #93c5fd;
+  border: 1px solid rgba(74, 136, 232, 0.35);
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.algo-step-content {
+  flex: 1;
+  font-size: 13.5px;
+  color: var(--text-main);
+}
+
+.algo-step-content strong {
+  color: #f1f2f4;
+  display: inline-block;
+  margin-bottom: 4px;
+}
+
+.algo-step-content p {
+  margin-bottom: 8px;
+  color: var(--text-muted);
+}
+
+.algo-step-content ul, .algo-step-content ol {
+  margin-left: 20px;
+  margin-bottom: 8px;
+}
+
+.algo-step-content li {
+  margin-bottom: 6px;
+  color: var(--text-muted);
+}
+
+.algo-warning {
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  margin: 10px 0;
+  font-size: 13px;
+  color: #fca5a5;
+}
+
+.algo-warning strong {
+  color: #f87171 !important;
+}
+
 /* Cross-links Box */
 .exam-links-box {
   background: var(--bg-surface-elevated);
