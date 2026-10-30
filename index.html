@@ -14,7 +14,7 @@
   <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js"></script>
 
   <!-- Academic Dark Stylesheet -->
-  <link rel="stylesheet" href="css/style.css?v=2.0">
+  <link rel="stylesheet" href="css/style.css?v=2.1">
 </head>
 <body>
 
@@ -33,11 +33,12 @@
         <div class="search-dropdown" id="searchDropdown" style="display: none;"></div>
       </div>
 
-      <!-- Section Tabs: Theory, Practice & Exam -->
+      <!-- Section Tabs: Theory, Practice, Exam & Colloquium -->
       <nav class="nav-tabs">
         <button class="tab-btn active" data-tab="theory" id="tabTheory">Теория</button>
         <button class="tab-btn" data-tab="practice" id="tabPractice">Практика</button>
         <button class="tab-btn tab-exam" data-tab="exam" id="tabExam">Контрольная 🔥</button>
+        <button class="tab-btn tab-colloquium" data-tab="colloquium" id="tabColloquium">Коллоквиум 🎓</button>
       </nav>
     </div>
   </header>
@@ -90,6 +91,11 @@
       <!-- Dynamically injected by js/app.js -->
     </div>
 
+    <!-- LEVEL 4: Colloquium Guide View (Вкладка подготовки к коллоквиуму) -->
+    <div id="colloquiumView" class="colloquium-view" style="display: none;">
+      <!-- Dynamically injected by js/app.js -->
+    </div>
+
   </main>
 
   <!-- Footer -->
@@ -106,9 +112,10 @@
   </footer>
 
   <!-- Scripts -->
-  <script src="js/data-glossary.js?v=2.0"></script>
-  <script src="js/data-course.js?v=2.0"></script>
-  <script src="js/data-exam.js?v=2.0"></script>
-  <script src="js/app.js?v=2.0"></script>
+  <script src="js/data-glossary.js?v=2.1"></script>
+  <script src="js/data-course.js?v=2.1"></script>
+  <script src="js/data-exam.js?v=2.1"></script>
+  <script src="js/data-colloquium.js?v=2.1"></script>
+  <script src="js/app.js?v=2.1"></script>
 </body>
 </html>

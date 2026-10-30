@@ -5,18 +5,20 @@
 document.addEventListener('DOMContentLoaded', () => {
   // Application State
   const state = {
-    activeTab: 'theory',   // 'theory' | 'practice' | 'exam'
-    currentView: 'modules', // 'modules' | 'topic' | 'exam'
+    activeTab: 'theory',   // 'theory' | 'practice' | 'exam' | 'colloquium'
+    currentView: 'modules', // 'modules' | 'topic' | 'exam' | 'colloquium'
     activeModuleId: null,
     activeTopicId: null,
     searchQuery: '',
-    returnTab: null
+    returnTab: null,
+    activeColloqBlock: 'all'
   };
 
   // DOM Elements
   const catalogView = document.getElementById('catalogView');
   const topicView = document.getElementById('topicView');
   const examView = document.getElementById('examView');
+  const colloquiumView = document.getElementById('colloquiumView');
   const modulesGrid = document.getElementById('modulesGrid');
   const sidebarContent = document.getElementById('sidebarContent');
   const topicReader = document.getElementById('topicReader');
@@ -61,7 +63,7 @@ document.addEventListener('DOMContentLoaded', () => {
       footerBackLink.addEventListener('click', (e) => {
         e.preventDefault();
         clearSearch();
-        if (state.returnTab === 'exam') {
+        if (state.returnTab === 'exam' || state.returnTab === 'colloquium') {
           const ret = state.returnTab;
           state.returnTab = null;
           window.location.hash = `#${ret}`;
@@ -74,7 +76,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Sidebar back button
     sidebarBackBtn.addEventListener('click', () => {
       clearSearch();
-      if (state.returnTab === 'exam') {
+      if (state.returnTab === 'exam' || state.returnTab === 'colloquium') {
         const ret = state.returnTab;
         state.returnTab = null;
         window.location.hash = `#${ret}`;
@@ -83,7 +85,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
-    // Navigation Tabs (Теория vs Практика vs Контрольная)
+    // Navigation Tabs (Теория vs Практика vs Контрольная vs Коллоквиум)
     tabBtns.forEach(btn => {
       btn.addEventListener('click', () => {
         tabBtns.forEach(b => b.classList.remove('active'));
@@ -95,6 +97,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (state.activeTab === 'exam') {
           showExamView();
           window.location.hash = '#exam';
+        } else if (state.activeTab === 'colloquium') {
+          showColloquiumView();
+          window.location.hash = '#colloquium';
         } else {
           showModulesView();
           renderModules();
@@ -109,6 +114,8 @@ document.addEventListener('DOMContentLoaded', () => {
         clearSearch();
         if (state.activeTab === 'exam') {
           showExamView();
+        } else if (state.activeTab === 'colloquium') {
+          showColloquiumView();
         } else if (state.currentView === 'modules') {
           renderModules();
         }
@@ -142,6 +149,8 @@ document.addEventListener('DOMContentLoaded', () => {
           if (searchDropdown) searchDropdown.style.display = 'none';
           if (state.activeTab === 'exam') {
             showExamView();
+          } else if (state.activeTab === 'colloquium') {
+            showColloquiumView();
           } else {
             renderModules();
           }
@@ -211,13 +220,39 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
 
-    if (matches.length === 0 && examMatches.length === 0) {
+    // Also search across colloquium tickets if COLLOQUIUM_DATA exists
+    const colloqMatches = [];
+    const colloqTickets = (typeof COLLOQUIUM_DATA !== 'undefined' && COLLOQUIUM_DATA.tickets) ? COLLOQUIUM_DATA.tickets : (typeof window !== 'undefined' && window.COLLOQUIUM_DATA ? window.COLLOQUIUM_DATA.tickets : null);
+    if (colloqTickets) {
+      colloqTickets.forEach(t => {
+        if (
+          t.title.toLowerCase().includes(q) ||
+          (t.num + '').includes(q) ||
+          t.blockTitle.toLowerCase().includes(q) ||
+          t.questions.some(qn => qn.toLowerCase().includes(q)) ||
+          'коллоквиум'.includes(q)
+        ) {
+          colloqMatches.push(t);
+        }
+      });
+    }
+
+    if (matches.length === 0 && examMatches.length === 0 && colloqMatches.length === 0) {
       searchDropdown.innerHTML = `<div class="search-dropdown-empty">Ничего не найдено по запросу «${q}»</div>`;
       searchDropdown.style.display = 'block';
       return;
     }
 
     let html = '';
+    if (colloqMatches.length > 0) {
+      html += colloqMatches.slice(0, 3).map(t => `
+        <a href="#${t.id}" class="search-dropdown-item colloq-match">
+          <span class="item-title">🎓 Билет №${t.num} — ${t.title}</span>
+          <span class="search-type-badge colloq" style="background: rgba(139, 92, 246, 0.2); color: #c4b5fd;">Коллоквиум • ${t.blockTitle.split(':')[0]}</span>
+        </a>
+      `).join('');
+    }
+
     if (examMatches.length > 0) {
       html += examMatches.map(t => `
         <a href="#${t.id}" class="search-dropdown-item exam-match">
@@ -270,6 +305,9 @@ document.addEventListener('DOMContentLoaded', () => {
     } else if (hash === 'exam' || hash.startsWith('task-') || hash.startsWith('prob-') || hash.startsWith('algo-')) {
       setActiveTab('exam');
       showExamView(hash);
+    } else if (hash === 'colloquium' || hash.startsWith('ticket-')) {
+      setActiveTab('colloquium');
+      showColloquiumView(hash);
     } else if (hash.startsWith('topic-')) {
       const topicId = hash.replace('topic-', '');
       showTopicView(topicId);
@@ -295,6 +333,7 @@ document.addEventListener('DOMContentLoaded', () => {
     catalogView.style.display = 'block';
     topicView.style.display = 'none';
     if (examView) examView.style.display = 'none';
+    if (colloquiumView) colloquiumView.style.display = 'none';
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -306,9 +345,11 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    // If navigated from exam view, save context
+    // If navigated from exam or colloquium view, save context
     if (state.activeTab === 'exam' || state.currentView === 'exam') {
       state.returnTab = 'exam';
+    } else if (state.activeTab === 'colloquium' || state.currentView === 'colloquium') {
+      state.returnTab = 'colloquium';
     }
 
     // Set tab matching the item type
@@ -325,11 +366,15 @@ document.addEventListener('DOMContentLoaded', () => {
     catalogView.style.display = 'none';
     topicView.style.display = 'block';
     if (examView) examView.style.display = 'none';
+    if (colloquiumView) colloquiumView.style.display = 'none';
 
-    // Update back buttons label if coming from exam
+    // Update back buttons label if coming from exam or colloquium
     if (state.returnTab === 'exam') {
       sidebarBackBtn.textContent = '← Назад к контрольной 🔥';
       if (footerBackLink) footerBackLink.textContent = 'Назад к контрольной 🔥';
+    } else if (state.returnTab === 'colloquium') {
+      sidebarBackBtn.textContent = '← Назад к коллоквиуму 🎓';
+      if (footerBackLink) footerBackLink.textContent = 'Назад к коллоквиуму 🎓';
     } else {
       sidebarBackBtn.textContent = '← Ко всем темам';
       if (footerBackLink) footerBackLink.textContent = 'К списку модулей';
@@ -352,6 +397,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     catalogView.style.display = 'none';
     topicView.style.display = 'none';
+    if (colloquiumView) colloquiumView.style.display = 'none';
     if (examView) {
       examView.style.display = 'block';
 
@@ -595,6 +641,235 @@ document.addEventListener('DOMContentLoaded', () => {
       window.addEventListener('load', () => {
         if (window.renderMathInElement) {
           renderMathInElement(examView, {
+            delimiters: [
+              { left: '$$', right: '$$', display: true },
+              { left: '$', right: '$', display: false }
+            ],
+            throwOnError: false
+          });
+        }
+      });
+    }
+  }
+
+  // Switch View to Colloquium Guide
+  function showColloquiumView(targetId) {
+    state.currentView = 'colloquium';
+    state.activeTab = 'colloquium';
+    state.returnTab = null;
+    setActiveTab('colloquium');
+
+    if (sidebarBackBtn) sidebarBackBtn.textContent = '← Ко всем темам';
+    if (footerBackLink) footerBackLink.textContent = 'К списку модулей';
+
+    catalogView.style.display = 'none';
+    topicView.style.display = 'none';
+    if (examView) examView.style.display = 'none';
+    if (colloquiumView) {
+      colloquiumView.style.display = 'block';
+
+      if (!colloquiumView.dataset.rendered) {
+        renderColloquiumView();
+        renderColloquiumMath();
+        colloquiumView.dataset.rendered = 'true';
+      }
+
+      if (targetId && targetId.startsWith('ticket-')) {
+        setTimeout(() => {
+          const el = document.getElementById(targetId);
+          if (el) {
+            colloquiumView.querySelectorAll('.colloq-ticket-card').forEach(c => c.classList.remove('focused'));
+            el.classList.add('focused');
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }, 80);
+      } else {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    }
+  }
+
+  // Render Full Colloquium View with 19 Tickets
+  function renderColloquiumView() {
+    const d = (typeof COLLOQUIUM_DATA !== 'undefined') ? COLLOQUIUM_DATA : (typeof window !== 'undefined' ? window.COLLOQUIUM_DATA : null);
+    if (!colloquiumView || !d) {
+      console.warn('COLLOQUIUM_DATA or colloquiumView not found', { colloquiumView, d });
+      return;
+    }
+
+    colloquiumView.innerHTML = `
+      <!-- Colloquium Hero Banner -->
+      <section class="colloq-hero">
+        <div class="colloq-hero-header">
+          <div class="colloq-hero-title">
+            <h1>🎓 ${d.meta.title}</h1>
+            <p>${d.meta.subtitle}</p>
+          </div>
+          <div class="colloq-hero-badges">
+            <span class="colloq-badge colloq-badge-count">📚 19 билетов</span>
+            <span class="colloq-badge colloq-badge-source">📖 По учебнику С.Н. Ильина (КФУ)</span>
+            <span class="colloq-badge colloq-badge-proofs">⚡ Полные доказательства и ловушки</span>
+          </div>
+        </div>
+
+        <div class="colloq-meta-grid">
+          <div class="colloq-meta-box">
+            <h4>🎯 Рекомендации к устному ответу на коллоквиуме</h4>
+            <ul>
+              ${d.meta.oralExamTips.map(tip => `<li>${tip}</li>`).join('')}
+            </ul>
+          </div>
+          <div class="colloq-meta-box">
+            <h4>📚 Рекомендуемая литература</h4>
+            <ul>
+              ${d.meta.sources.map(s => `
+                <li><strong>${s.code} ${s.author}</strong> «${s.title}» (${s.publisher}) — <em>${s.note}</em></li>
+              `).join('')}
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- Thematic Block Filter Buttons -->
+      <div class="colloq-block-filter" role="tablist" aria-label="Фильтр билетов по блокам">
+        <button type="button" class="colloq-filter-btn active" data-block="all">Все билеты (1–19)</button>
+        ${d.blocks.map(b => `
+          <button type="button" class="colloq-filter-btn" data-block="${b.id}">${b.title} (${b.ticketsRange})</button>
+        `).join('')}
+      </div>
+
+      <!-- Quick Jump Nav Pills for 19 tickets -->
+      <nav class="colloq-nav-pills" aria-label="Быстрый переход к билетам коллоквиума">
+        ${d.tickets.map(t => `
+          <a href="#${t.id}" class="colloq-nav-pill" data-block="${t.blockId}">
+            <span class="pill-num">№${t.num}</span>
+            <span>Билет ${t.num}</span>
+          </a>
+        `).join('')}
+      </nav>
+
+      <!-- Container with all 19 tickets -->
+      <div class="colloq-tickets-container" id="colloqTicketsContainer">
+        ${d.tickets.map(ticket => renderColloquiumTicketCard(ticket)).join('')}
+      </div>
+    `;
+
+    // Attach click events on navigation pills to scroll smoothly
+    colloquiumView.querySelectorAll('.colloq-nav-pill').forEach(pill => {
+      pill.addEventListener('click', (e) => {
+        const targetId = pill.getAttribute('href').replace('#', '');
+        const el = document.getElementById(targetId);
+        if (el) {
+          e.preventDefault();
+          history.pushState(null, null, `#${targetId}`);
+          colloquiumView.querySelectorAll('.colloq-ticket-card').forEach(c => c.classList.remove('focused'));
+          el.classList.add('focused');
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      });
+    });
+
+    // Block filter event listeners
+    colloquiumView.querySelectorAll('.colloq-filter-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        colloquiumView.querySelectorAll('.colloq-filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const chosenBlock = btn.dataset.block;
+        state.activeColloqBlock = chosenBlock;
+
+        const ticketCards = colloquiumView.querySelectorAll('.colloq-ticket-card');
+        const navPills = colloquiumView.querySelectorAll('.colloq-nav-pill');
+
+        ticketCards.forEach(card => {
+          if (chosenBlock === 'all' || card.dataset.block === chosenBlock) {
+            card.style.display = 'block';
+          } else {
+            card.style.display = 'none';
+          }
+        });
+
+        navPills.forEach(pill => {
+          if (chosenBlock === 'all' || pill.dataset.block === chosenBlock) {
+            pill.style.display = 'inline-flex';
+          } else {
+            pill.style.display = 'none';
+          }
+        });
+      });
+    });
+
+    // Attach spoiler toggle math renderer
+    colloquiumView.querySelectorAll('.colloq-proof').forEach(spoiler => {
+      spoiler.addEventListener('toggle', () => {
+        if (spoiler.open && window.renderMathInElement) {
+          renderMathInElement(spoiler, {
+            delimiters: [
+              { left: '$$', right: '$$', display: true },
+              { left: '$', right: '$', display: false }
+            ],
+            throwOnError: false
+          });
+        }
+      });
+    });
+  }
+
+  // Render a Single Ticket Card
+  function renderColloquiumTicketCard(ticket) {
+    return `
+      <article class="colloq-ticket-card" id="${ticket.id}" data-block="${ticket.blockId}">
+        <header class="colloq-ticket-header">
+          <div class="colloq-ticket-meta">
+            <span class="colloq-ticket-num-badge">Билет №${ticket.num}</span>
+            <span class="colloq-ticket-block-badge">${ticket.blockTitle}</span>
+            <span class="colloq-ticket-source">📖 ${ticket.sourceRef}</span>
+          </div>
+          <h2 class="colloq-ticket-title">${ticket.title}</h2>
+        </header>
+
+        <!-- Questions in Ticket -->
+        <div class="colloq-questions-box">
+          <h4>Вопросы билета по программе коллоквиума:</h4>
+          <ol>
+            ${ticket.questions.map(q => `<li>${q}</li>`).join('')}
+          </ol>
+        </div>
+
+        <!-- Oral Response Checklist -->
+        <div class="colloq-checklist-box">
+          <div class="colloq-checklist-title">
+            <span>📋</span> Что обязательно должно быть в ответе студента у доски:
+          </div>
+          <ul>
+            ${ticket.checklist.map(item => `<li>${item}</li>`).join('')}
+          </ul>
+        </div>
+
+        <!-- Ticket Body Content -->
+        <div class="colloq-ticket-content">
+          ${ticket.sections.definitions ? ticket.sections.definitions : ''}
+          ${ticket.sections.theoremsAndProofs ? ticket.sections.theoremsAndProofs : ''}
+          ${ticket.sections.algorithmsOrMethods ? ticket.sections.algorithmsOrMethods : ''}
+          ${ticket.sections.examTraps ? ticket.sections.examTraps : ''}
+        </div>
+      </article>
+    `;
+  }
+
+  function renderColloquiumMath() {
+    if (!colloquiumView) return;
+    if (window.renderMathInElement) {
+      renderMathInElement(colloquiumView, {
+        delimiters: [
+          { left: '$$', right: '$$', display: true },
+          { left: '$', right: '$', display: false }
+        ],
+        throwOnError: false
+      });
+    } else {
+      window.addEventListener('load', () => {
+        if (window.renderMathInElement) {
+          renderMathInElement(colloquiumView, {
             delimiters: [
               { left: '$$', right: '$$', display: true },
               { left: '$', right: '$', display: false }

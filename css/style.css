@@ -1016,6 +1016,20 @@ footer.site-footer {
   border: 1px solid rgba(245, 158, 11, 0.35);
 }
 
+.tab-btn.tab-colloquium {
+  color: #a78bfa;
+}
+
+.tab-btn.tab-colloquium:hover {
+  color: #c4b5fd;
+}
+
+.tab-btn.tab-colloquium.active {
+  background: rgba(167, 139, 250, 0.14);
+  color: #c4b5fd;
+  border: 1px solid rgba(167, 139, 250, 0.35);
+}
+
 .exam-view {
   padding: 32px 0 60px;
   animation: fadeIn 0.2s ease-in-out;
@@ -1763,31 +1777,37 @@ footer.site-footer {
     padding: 2px 6px;
   }
 
-  /* Navigation Tabs: full-width 3 buttons */
+  /* Navigation Tabs: full-width 4 buttons with touch scroll */
   nav.nav-tabs {
     order: 3;
     width: 100%;
     flex: 0 0 100%;
     display: flex;
-    gap: 4px;
-    padding: 3px;
+    gap: 6px;
+    padding: 4px;
     box-sizing: border-box;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  nav.nav-tabs::-webkit-scrollbar {
+    display: none;
   }
 
   .tab-btn {
-    flex: 1 1 0;
-    min-width: 0;
+    flex: 1 0 auto;
+    min-width: max-content;
     text-align: center;
     justify-content: center;
-    padding: 8px 4px;
+    padding: 8px 10px;
     font-size: 12.5px;
     white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
   }
 
-  .tab-btn.tab-exam {
-    flex: 1.25 1 0;
+  .tab-btn.tab-exam,
+  .tab-btn.tab-colloquium {
+    flex: 1 0 auto;
   }
 
   /* Catalog View on Mobile */
@@ -1986,5 +2006,515 @@ footer.site-footer {
 
   .exam-task-title {
     font-size: 16.5px;
+  }
+}
+
+/* ==========================================================================
+   Colloquium View Styling (Коллоквиум 1 семестр)
+   ========================================================================== */
+
+.colloquium-view {
+  padding: 32px 0 60px;
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+/* Colloquium Hero Banner */
+.colloq-hero {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 32px;
+  margin-bottom: 24px;
+  position: relative;
+  overflow: hidden;
+}
+
+.colloq-hero::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #8b5cf6, #3b82f6, #10b981);
+}
+
+.colloq-hero-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.colloq-hero-title h1 {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--text-main);
+  letter-spacing: -0.02em;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.colloq-hero-title p {
+  color: var(--text-muted);
+  font-size: 15px;
+  max-width: 760px;
+  line-height: 1.5;
+}
+
+.colloq-hero-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.colloq-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.colloq-badge-count {
+  background: rgba(139, 92, 246, 0.14);
+  color: #c4b5fd;
+  border: 1px solid rgba(139, 92, 246, 0.3);
+}
+
+.colloq-badge-source {
+  background: rgba(59, 130, 246, 0.14);
+  color: #93c5fd;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.colloq-badge-proofs {
+  background: rgba(16, 185, 129, 0.14);
+  color: #6ee7b7;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.colloq-meta-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.colloq-meta-box {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 16px 20px;
+}
+
+.colloq-meta-box h4 {
+  font-size: 14px;
+  font-weight: 700;
+  color: #c4b5fd;
+  margin-bottom: 10px;
+}
+
+.colloq-meta-box ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.colloq-meta-box li {
+  font-size: 13.5px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  position: relative;
+  padding-left: 18px;
+}
+
+.colloq-meta-box li::before {
+  content: "•";
+  position: absolute;
+  left: 4px;
+  color: #a78bfa;
+  font-weight: bold;
+}
+
+/* Block Filters */
+.colloq-block-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.colloq-filter-btn {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.colloq-filter-btn:hover {
+  border-color: var(--border-hover);
+  color: var(--text-main);
+}
+
+.colloq-filter-btn.active {
+  background: rgba(139, 92, 246, 0.16);
+  border-color: #8b5cf6;
+  color: #c4b5fd;
+}
+
+/* Navigation Pills for 19 tickets */
+.colloq-nav-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 28px;
+  padding: 14px 16px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+}
+
+.colloq-nav-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.15s ease;
+}
+
+.colloq-nav-pill:hover {
+  background: rgba(139, 92, 246, 0.12);
+  border-color: rgba(139, 92, 246, 0.4);
+  color: #c4b5fd;
+  transform: translateY(-1px);
+}
+
+.colloq-nav-pill .pill-num {
+  font-weight: 700;
+  color: #a78bfa;
+}
+
+/* Ticket Cards Container */
+.colloq-tickets-container {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.colloq-ticket-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 28px;
+  scroll-margin-top: 80px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.colloq-ticket-card:target,
+.colloq-ticket-card.focused {
+  border-color: #8b5cf6;
+  box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.2);
+}
+
+.colloq-ticket-header {
+  border-bottom: 1px solid var(--border-subtle);
+  padding-bottom: 18px;
+  margin-bottom: 20px;
+}
+
+.colloq-ticket-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.colloq-ticket-num-badge {
+  background: rgba(139, 92, 246, 0.18);
+  border: 1px solid rgba(139, 92, 246, 0.4);
+  color: #c4b5fd;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: var(--radius-sm);
+}
+
+.colloq-ticket-block-badge {
+  background: rgba(59, 130, 246, 0.12);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  color: #93c5fd;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: var(--radius-sm);
+}
+
+.colloq-ticket-source {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  margin-left: auto;
+}
+
+.colloq-ticket-title {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--text-main);
+  line-height: 1.35;
+  margin: 0;
+}
+
+/* Questions Box */
+.colloq-questions-box {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-md);
+  padding: 16px 20px;
+  margin-bottom: 20px;
+}
+
+.colloq-questions-box h4 {
+  font-size: 13.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+
+.colloq-questions-box ol {
+  margin: 0;
+  padding-left: 20px;
+  color: var(--text-main);
+  font-size: 14.5px;
+  line-height: 1.6;
+}
+
+.colloq-questions-box li {
+  margin-bottom: 6px;
+}
+
+/* Checklist: Что должно быть в ответе */
+.colloq-checklist-box {
+  background: rgba(16, 185, 129, 0.06);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  border-radius: var(--radius-md);
+  padding: 18px 20px;
+  margin-bottom: 24px;
+}
+
+.colloq-checklist-title {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: #34d399;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.colloq-checklist-box ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.colloq-checklist-box li {
+  font-size: 14px;
+  color: var(--text-main);
+  line-height: 1.55;
+  margin-bottom: 6px;
+  padding-left: 22px;
+  position: relative;
+}
+
+.colloq-checklist-box li::before {
+  content: "✓";
+  position: absolute;
+  left: 2px;
+  color: #10b981;
+  font-weight: 800;
+}
+
+/* Cards within Content */
+.colloq-def-card,
+.colloq-theorem-card,
+.colloq-algo-box,
+.colloq-trap-card {
+  margin-bottom: 22px;
+  border-radius: var(--radius-md);
+  padding: 18px 22px;
+  font-size: 14.5px;
+  line-height: 1.65;
+}
+
+.colloq-def-card {
+  background: rgba(59, 130, 246, 0.04);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.colloq-def-card h4 {
+  color: #60a5fa;
+  font-size: 16px;
+  margin-bottom: 10px;
+}
+
+.colloq-theorem-card {
+  background: rgba(139, 92, 246, 0.04);
+  border: 1px solid rgba(139, 92, 246, 0.25);
+}
+
+.colloq-theorem-card h4 {
+  color: #c4b5fd;
+  font-size: 16px;
+  margin-bottom: 10px;
+}
+
+.colloq-proof {
+  margin-top: 14px;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.colloq-proof-summary {
+  padding: 12px 16px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 13.5px;
+  color: #a78bfa;
+  background: rgba(139, 92, 246, 0.08);
+  user-select: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.colloq-proof-summary:hover {
+  background: rgba(139, 92, 246, 0.14);
+}
+
+.colloq-proof-body {
+  padding: 16px 20px;
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--text-main);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.colloq-algo-box {
+  background: rgba(245, 158, 11, 0.04);
+  border: 1px solid rgba(245, 158, 11, 0.22);
+}
+
+.colloq-algo-box h4 {
+  color: #fbbf24;
+  font-size: 16px;
+  margin-bottom: 10px;
+}
+
+.colloq-trap-card {
+  background: rgba(239, 68, 68, 0.05);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+}
+
+.colloq-trap-card h4 {
+  color: #f87171;
+  font-size: 16px;
+  margin-bottom: 10px;
+}
+
+.colloq-trap-card ul {
+  padding-left: 18px;
+  margin: 0;
+}
+
+.colloq-trap-card li {
+  margin-bottom: 10px;
+}
+
+.colloq-note {
+  background: rgba(255, 255, 255, 0.03);
+  border-left: 3px solid var(--accent);
+  padding: 8px 12px;
+  margin: 10px 0;
+  font-size: 13.5px;
+}
+
+.colloq-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 14px 0;
+  font-size: 13.5px;
+}
+
+.colloq-table th,
+.colloq-table td {
+  border: 1px solid var(--border-subtle);
+  padding: 8px 12px;
+  text-align: left;
+}
+
+.colloq-table th {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-main);
+}
+
+/* Mobile rules for Colloquium */
+@media (max-width: 768px) {
+  .colloq-hero {
+    padding: 20px 16px;
+  }
+
+  .colloq-hero-title h1 {
+    font-size: 22px;
+  }
+
+  .colloq-meta-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .colloq-ticket-card {
+    padding: 18px 14px;
+  }
+
+  .colloq-ticket-title {
+    font-size: 18px;
+  }
+
+  .colloq-ticket-source {
+    width: 100%;
+    margin-left: 0;
+    margin-top: 4px;
+  }
+
+  .colloq-def-card,
+  .colloq-theorem-card,
+  .colloq-algo-box,
+  .colloq-trap-card {
+    padding: 14px 14px;
+    font-size: 13.5px;
   }
 }
