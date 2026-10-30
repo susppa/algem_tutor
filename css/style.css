@@ -46,6 +46,10 @@
   padding: 0;
 }
 
+html {
+  overflow-x: hidden;
+}
+
 body {
   font-family: var(--font-sans);
   background-color: var(--bg-main);
@@ -55,6 +59,7 @@ body {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  overflow-x: hidden;
 }
 
 /* Scrollbars */
@@ -99,6 +104,7 @@ header.site-header {
   justify-content: space-between;
   height: 58px;
   gap: 20px;
+  position: relative;
 }
 
 .brand {
@@ -215,6 +221,10 @@ header.site-header {
   background: var(--bg-surface-hover);
 }
 
+.search-dropdown-item.exam-match {
+  border-left: 2px solid #ef4444;
+}
+
 .search-dropdown-item .item-title {
   font-weight: 500;
   flex: 1;
@@ -250,6 +260,12 @@ header.site-header {
   background: rgba(210, 153, 34, 0.12);
   color: #d29922;
   border: 1px solid rgba(210, 153, 34, 0.25);
+}
+
+.search-type-badge.exam {
+  background: rgba(239, 68, 68, 0.12);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.25);
 }
 
 .search-dropdown-empty {
@@ -1656,55 +1672,319 @@ footer.site-footer {
   color: #f87171;
 }
 
-/* Mobile Adjustments for Exam View */
-@media (max-width: 768px) {
-  .exam-hero {
-    padding: 20px;
+/* ==========================================================================
+   Responsive Design & Mobile Optimizations
+   ========================================================================== */
+
+/* Tablet & Mobile (<= 860px) */
+@media (max-width: 860px) {
+  .container {
+    padding: 0 12px;
   }
-  .exam-task-card {
-    padding: 18px;
+
+  /* Two-row sticky header:
+     Row 1: Brand (left) + Search Input (right, expands to fill)
+     Row 2: Segmented Tabs (Теория / Практика / Контрольная 🔥) */
+  .header-inner {
+    height: auto;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    padding: 8px 0 8px;
+    gap: 8px 10px;
+    position: relative;
   }
-  .exam-meta-grid {
-    grid-template-columns: 1fr;
+
+  .brand {
+    order: 1;
+    font-size: 19px;
+    height: 38px;
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
   }
-  .exam-nav-pills {
+
+  .search-wrapper {
+    order: 2;
+    flex: 1 1 180px;
+    max-width: none;
+    min-width: 0;
+    position: static; /* Let dropdown anchor to .header-inner so it spans full screen */
+  }
+
+  .search-input {
+    height: 38px;
+    font-size: 16px; /* 16px is required by iOS Safari to prevent auto-zooming on focus */
+    padding: 0 32px 0 34px;
+    border-radius: var(--radius-md);
+  }
+
+  .search-input::placeholder {
+    font-size: 13px;
+  }
+
+  .search-icon {
+    left: 11px;
+    font-size: 13px;
+  }
+
+  .search-clear-btn {
+    right: 8px;
+    font-size: 13px;
+    padding: 5px;
+  }
+
+  /* Full-width live search dropdown on mobile */
+  .search-dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    width: 100%;
+    max-height: 60vh;
+    max-height: calc(100dvh - 120px);
+    border-radius: var(--radius-md);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7);
+    background: var(--bg-surface-elevated);
+    border: 1px solid var(--border-strong);
+    z-index: 1000;
+  }
+
+  .search-dropdown-item {
+    padding: 10px 12px;
+  }
+
+  .search-dropdown-item .item-title {
+    font-size: 13px;
+  }
+
+  .search-type-badge {
+    font-size: 10px;
+    padding: 2px 6px;
+  }
+
+  /* Navigation Tabs: full-width 3 buttons */
+  nav.nav-tabs {
+    order: 3;
+    width: 100%;
+    flex: 0 0 100%;
+    display: flex;
+    gap: 4px;
+    padding: 3px;
+    box-sizing: border-box;
+  }
+
+  .tab-btn {
+    flex: 1 1 0;
+    min-width: 0;
+    text-align: center;
+    justify-content: center;
+    padding: 8px 4px;
+    font-size: 12.5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .tab-btn.tab-exam {
+    flex: 1.25 1 0;
+  }
+
+  /* Catalog View on Mobile */
+  .catalog-view {
+    padding: 20px 0 40px;
+  }
+
+  .catalog-header {
     flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 18px;
+    padding-bottom: 12px;
   }
-}
 
-.footer-inner {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 16px;
-}
+  .catalog-title h1 {
+    font-size: 22px;
+  }
 
-.footer-links a {
-  color: var(--text-muted);
-  text-decoration: none;
-  margin-left: 16px;
-  transition: var(--transition);
-}
+  .catalog-title p {
+    font-size: 13.5px;
+  }
 
-.footer-links a:hover {
-  color: var(--text-main);
-}
+  .catalog-stats {
+    font-size: 12px;
+  }
 
-/* Responsive */
-@media (max-width: 900px) {
+  .modules-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .module-card {
+    padding: 16px;
+  }
+
+  /* Topic View & Syllabus on Mobile */
+  .topic-view {
+    padding: 18px 0 40px;
+  }
+
   .topic-layout {
     flex-direction: column;
+    gap: 16px;
   }
+
   aside.syllabus-sidebar {
     width: 100%;
     position: static;
-    max-height: 280px;
+    max-height: 220px;
+    padding: 12px;
   }
+
   article.topic-reader {
-    padding: 20px;
+    padding: 18px 14px;
   }
-  .modules-grid {
+
+  .reader-title {
+    font-size: 22px;
+  }
+
+  /* Exam View on Mobile */
+  .exam-view {
+    padding: 18px 0 40px;
+  }
+
+  .exam-hero {
+    padding: 18px 14px;
+    margin-bottom: 20px;
+  }
+
+  .exam-hero-title h1 {
+    font-size: 22px;
+  }
+
+  .exam-hero-title p {
+    font-size: 13.5px;
+  }
+
+  .exam-hero-badges {
+    gap: 6px;
+  }
+
+  .exam-badge {
+    font-size: 11.5px;
+    padding: 4px 8px;
+  }
+
+  .exam-meta-grid {
     grid-template-columns: 1fr;
+    gap: 12px;
+    margin-top: 16px;
+    padding-top: 14px;
+  }
+
+  .exam-meta-box {
+    padding: 14px;
+  }
+
+  .exam-nav-pills {
+    flex-direction: column;
+    gap: 6px;
+    padding: 6px;
+    margin-bottom: 20px;
+  }
+
+  .exam-nav-pill {
+    padding: 8px 12px;
+    font-size: 12.5px;
+  }
+
+  .exam-task-card {
+    padding: 16px 14px;
+    margin-bottom: 22px;
+  }
+
+  .exam-task-title-wrap {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .exam-task-title {
+    font-size: 18px;
+    width: 100%;
+  }
+
+  .exam-task-num-badge,
+  .exam-task-code-badge {
+    font-size: 12px;
+    padding: 3px 8px;
+  }
+
+  .exam-task-synopsis {
+    font-size: 13.5px;
+  }
+
+  .exam-algorithm-box {
+    margin-bottom: 18px;
+  }
+
+  .algo-summary-title {
+    font-size: 13px;
+  }
+
+  .algo-heading {
+    font-size: 13px;
+  }
+
+  .exam-spoiler summary {
+    padding: 12px 12px;
+  }
+
+  .spoiler-label {
+    font-size: 13.5px;
+  }
+
+  .spoiler-cta {
+    font-size: 12px;
+  }
+
+  .exam-spoiler-body {
+    padding: 14px 12px;
+  }
+
+  /* Footer on Mobile */
+  .footer-inner {
+    flex-direction: column;
+    text-align: center;
+    gap: 12px;
+  }
+
+  .footer-links a {
+    margin: 0 8px;
+  }
+}
+
+/* Extra small devices (<= 380px) */
+@media (max-width: 380px) {
+  .brand {
+    font-size: 17px;
+  }
+
+  .tab-btn {
+    font-size: 11.5px;
+    padding: 7px 2px;
+  }
+
+  .search-input {
+    font-size: 15px;
+    padding: 0 28px 0 30px;
+  }
+
+  .exam-hero-title h1 {
+    font-size: 20px;
+  }
+
+  .exam-task-title {
+    font-size: 16.5px;
   }
 }
