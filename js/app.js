@@ -438,7 +438,23 @@ document.addEventListener('DOMContentLoaded', () => {
     const variants = (typeof EXAM_VARIANTS !== 'undefined') ? EXAM_VARIANTS : (window.EXAM_VARIANTS || []);
     if (!d) return null;
 
-    // Check if preset variant is requested
+    // Check if archive past-year variant is requested
+    if (variantId && variantId.startsWith('past-var-')) {
+      const pastVariants = (typeof PAST_EXAM_VARIANTS !== 'undefined') ? PAST_EXAM_VARIANTS : (window.PAST_EXAM_VARIANTS || []);
+      const preset = pastVariants.find(v => v.id === variantId);
+      if (preset) {
+        return {
+          id: preset.id,
+          num: preset.num,
+          title: preset.title,
+          level: 'medium',
+          levelName: preset.note || 'Архивный вариант прошлого года (Aⁿ, AXB=C, СЛАУ с рангами, ⁴√w, базис)',
+          problems: preset.problems
+        };
+      }
+    }
+
+    // Check if official preset variant is requested
     if (variantId && variants.length > 0) {
       const preset = variants.find(v => v.id === variantId);
       if (preset) {
@@ -569,21 +585,37 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
           </div>
 
-          <!-- Preset Variants Selector -->
+          <!-- Preset Variants Selector (Official Кострикин 2026 + Past Year Archive) -->
           <div class="exam-control-group">
-            <label class="exam-control-label">2. Или выберите готовый вариант из реальной КР:</label>
+            <label class="exam-control-label">2. Выберите тренировочный вариант этого года (Кострикин № 8.2, 18.3, 20.11, 20.8, 22.7):</label>
             <div class="exam-preset-pills">
-              <button type="button" class="exam-preset-btn ${state.activeExamVariantId === 'variant-2' ? 'active' : ''}" data-variant="variant-2">
-                📄 Вариант № 2
+              <button type="button" class="exam-preset-btn ${state.activeExamVariantId === 'var-official-medium' || !state.activeExamVariantId ? 'active' : ''}" data-variant="var-official-medium">
+                ⭐ Вариант № 1 (Средний — формат КР)
               </button>
-              <button type="button" class="exam-preset-btn ${state.activeExamVariantId === 'variant-3' ? 'active' : ''}" data-variant="variant-3">
-                📄 Вариант № 3
+              <button type="button" class="exam-preset-btn ${state.activeExamVariantId === 'var-official-basic' ? 'active' : ''}" data-variant="var-official-basic">
+                🟢 Вариант № 2 (Базовый)
               </button>
-              <button type="button" class="exam-preset-btn ${state.activeExamVariantId === 'variant-4' ? 'active' : ''}" data-variant="variant-4">
-                📄 Вариант № 4
+              <button type="button" class="exam-preset-btn ${state.activeExamVariantId === 'var-official-hard' ? 'active' : ''}" data-variant="var-official-hard">
+                🔴 Вариант № 3 (Сложный)
               </button>
-              <button type="button" class="exam-preset-btn ${!state.activeExamVariantId ? 'active' : ''}" data-variant="random">
-                🎲 Случайный вариант
+              <button type="button" class="exam-preset-btn ${state.activeExamVariantId === 'random' ? 'active' : ''}" data-variant="random">
+                🎲 Случайная комбинация
+              </button>
+            </div>
+          </div>
+
+          <!-- Archive past-year variants from photos -->
+          <div class="exam-control-group">
+            <label class="exam-control-label">3. Или посмотрите варианты прошлого года (Aⁿ, AXB=C, СЛАУ Гаусса, ⁴√w, базис):</label>
+            <div class="exam-preset-pills">
+              <button type="button" class="exam-preset-btn ${state.activeExamVariantId === 'past-var-2' ? 'active' : ''}" data-variant="past-var-2">
+                🏛️ Прошлый год: Вариант № 2
+              </button>
+              <button type="button" class="exam-preset-btn ${state.activeExamVariantId === 'past-var-3' ? 'active' : ''}" data-variant="past-var-3">
+                🏛️ Прошлый год: Вариант № 3
+              </button>
+              <button type="button" class="exam-preset-btn ${state.activeExamVariantId === 'past-var-4' ? 'active' : ''}" data-variant="past-var-4">
+                🏛️ Прошлый год: Вариант № 4
               </button>
             </div>
           </div>
