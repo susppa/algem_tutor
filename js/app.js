@@ -1692,9 +1692,36 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
         `;
         
-        // Contextual glossary helper for elementary transforms
-        if (item.id.includes('elementary') || item.id.includes('echelon') || item.id.includes('inverse') || item.id.includes('gauss') || item.id.includes('rank')) {
+        // Contextual glossary helpers
+        if (item.id.includes('elementary') || item.id.includes('echelon')) {
           contentHtml += createGlossaryInlineHelper('elem_transforms');
+        }
+        if (item.id.includes('inverse')) {
+          contentHtml += createGlossaryInlineHelper('inverse_matrix');
+        }
+        if (item.id.includes('rank')) {
+          contentHtml += createGlossaryInlineHelper('matrix_rank');
+        }
+        if (item.id.includes('slau') || item.id.includes('consistent') || item.id.includes('kronecker') || item.id.includes('gauss')) {
+          contentHtml += createGlossaryInlineHelper('kronecker_capelli');
+        }
+        if (item.id.includes('fsr') || item.id.includes('homogeneous')) {
+          contentHtml += createGlossaryInlineHelper('fsr');
+        }
+        if (item.id.includes('conjugate')) {
+          contentHtml += createGlossaryInlineHelper('complex_conjugate');
+        }
+        if (item.id.includes('moivre') || item.id.includes('root')) {
+          contentHtml += createGlossaryInlineHelper('moivre_formula');
+        }
+        if (item.id.includes('basis') || item.id.includes('dimension')) {
+          contentHtml += createGlossaryInlineHelper('basis_dimension');
+        }
+        if (item.id.includes('linear-dependence') || item.id.includes('independent')) {
+          contentHtml += createGlossaryInlineHelper('linear_dependence');
+        }
+        if (item.id.includes('subspace') || item.id.includes('span')) {
+          contentHtml += createGlossaryInlineHelper('subspace_span');
         }
       }
 
