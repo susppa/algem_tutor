@@ -1752,7 +1752,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (item.trap) {
         contentHtml += `
           <div class="box-trap">
-            <div class="box-trap-title">Типичная ошибка при вычислениях:</div>
+            <div class="box-trap-title">⚠️ Предостережение: где срезаются 90% студентов</div>
             <div class="box-trap-text">${item.trap}</div>
           </div>
         `;
@@ -1948,7 +1948,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (item.trap) {
         contentHtml += `
           <div class="box-trap">
-            <div class="box-trap-title">Типичная ошибка на коллоквиуме:</div>
+            <div class="box-trap-title">⚠️ Предостережение: где срезаются 90% студентов на коллоквиуме</div>
             <div class="box-trap-text">${item.trap}</div>
           </div>
         `;

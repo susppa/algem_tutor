@@ -1450,6 +1450,21 @@ footer.site-footer {
   color: #93c5fd;
 }
 
+.algo-step-list {
+  margin: 12px 0 18px 24px;
+  padding: 0;
+}
+
+.algo-step-list li {
+  margin-bottom: 12px;
+  line-height: 1.65;
+  color: var(--text-normal, #e2e8f0);
+}
+
+.algo-step-list li strong {
+  color: #fbbf24;
+}
+
 /* Cross-links Box */
 .exam-links-box {
   background: var(--bg-surface-elevated);
