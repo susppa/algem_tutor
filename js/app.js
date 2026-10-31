@@ -11,7 +11,15 @@ document.addEventListener('DOMContentLoaded', () => {
     activeTopicId: null,
     searchQuery: '',
     returnTab: null,
-    activeColloqBlock: 'all'
+    activeColloqBlock: 'all',
+    colloqMode: 'single', // 'single' | 'all' (Single Ticket mode solves scrolling fatigue!)
+    activeColloqTicketId: 'ticket-1',
+    activeExamLevel: 'medium', // 'basic' | 'medium' | 'hard'
+    activeExamVariantId: 'variant-2',
+    generatedVariant: null,
+    examTimerSeconds: 90 * 60,
+    examTimerInterval: null,
+    examTimerRunning: false
   };
 
   // DOM Elements
@@ -401,14 +409,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if (examView) {
       examView.style.display = 'block';
 
-      // Preserve open spoilers: only render HTML if not yet rendered!
+      // Re-render to ensure generator and latest tasks are up to date
       if (!examView.dataset.rendered) {
         renderExamView();
         renderExamMath();
         examView.dataset.rendered = 'true';
       }
 
-      if (targetId && (targetId.startsWith('task-') || targetId.startsWith('prob-') || targetId.startsWith('algo-'))) {
+      if (targetId && (targetId.startsWith('task-') || targetId.startsWith('prob-') || targetId.startsWith('algo-') || targetId.startsWith('variant-'))) {
         setTimeout(() => {
           const el = document.getElementById(targetId);
           if (el) {
@@ -424,12 +432,81 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Render Full Exam View with 5 Tasks, Synopsis, Rules, and Collapsible Solutions
+  // Generate a complete 5-task variant based on level or preset variantId
+  function getExamVariant(level, variantId) {
+    const d = (typeof EXAM_DATA !== 'undefined') ? EXAM_DATA : (window.EXAM_DATA || null);
+    const variants = (typeof EXAM_VARIANTS !== 'undefined') ? EXAM_VARIANTS : (window.EXAM_VARIANTS || []);
+    if (!d) return null;
+
+    // Check if preset variant is requested
+    if (variantId && variants.length > 0) {
+      const preset = variants.find(v => v.id === variantId);
+      if (preset) {
+        const problems = [];
+        preset.taskIds.forEach(pid => {
+          for (const task of d.tasks) {
+            const prob = task.problems.find(p => p.id === pid);
+            if (prob) {
+              problems.push({ taskNum: task.num, taskTitle: task.title, taskCode: task.code, ...prob });
+              break;
+            }
+          }
+        });
+        return {
+          id: preset.id,
+          num: preset.num,
+          title: preset.title,
+          level: preset.level,
+          levelName: preset.levelName,
+          problems
+        };
+      }
+    }
+
+    // Dynamic generation by difficulty level
+    const chosenLevel = level || 'medium';
+    const levelLabels = {
+      basic: 'Базовый уровень (разминка перед контрольной)',
+      medium: 'Средний уровень (⭐ рекомендуемый: готовиться лучше по нему)',
+      hard: 'Сложный уровень (для дополнительной подготовки)'
+    };
+
+    const problems = [];
+    d.tasks.forEach(task => {
+      // Find problem matching level or fallback to first
+      let matching = task.problems.filter(p => p.difficulty === chosenLevel);
+      if (matching.length === 0) matching = task.problems;
+      const pick = matching[Math.floor(Math.random() * matching.length)];
+      problems.push({ taskNum: task.num, taskTitle: task.title, taskCode: task.code, ...pick });
+    });
+
+    return {
+      id: 'dynamic-variant-' + Date.now(),
+      num: Math.floor(Math.random() * 20) + 10,
+      title: 'Случайный вариант для самопроверки',
+      level: chosenLevel,
+      levelName: levelLabels[chosenLevel] || levelLabels.medium,
+      problems
+    };
+  }
+
+  // Format seconds to mm:ss
+  function formatExamTimer(sec) {
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return `${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
+  }
+
+  // Render Full Exam View with Generator, 5 Tasks, Synopsis, Rules, and Collapsible Solutions
   function renderExamView() {
-    const d = (typeof EXAM_DATA !== 'undefined') ? EXAM_DATA : (typeof window !== 'undefined' ? window.EXAM_DATA : null);
+    const d = (typeof EXAM_DATA !== 'undefined') ? EXAM_DATA : (window.EXAM_DATA || null);
     if (!examView || !d) {
       console.warn('EXAM_DATA or examView not found', { examView, d });
       return;
+    }
+
+    if (!state.generatedVariant) {
+      state.generatedVariant = getExamVariant(state.activeExamLevel, state.activeExamVariantId);
     }
 
     examView.innerHTML = `
@@ -463,12 +540,73 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       </section>
 
+      <!-- INTERACTIVE EXAM GENERATOR («Решить контрольную») -->
+      <section class="exam-generator-card" id="examGeneratorSection">
+        <div class="exam-gen-header">
+          <div class="exam-gen-title-box">
+            <span class="exam-gen-icon">🎲</span>
+            <div>
+              <h3>Тренажер: Решить вариант контрольной работы</h3>
+              <p>Сгенерируйте тренировочный вариант из 5 заданий. Решайте самостоятельно на черновике, сверяясь с таймером и подробными решениями.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Level Selector -->
+        <div class="exam-gen-controls">
+          <div class="exam-control-group">
+            <label class="exam-control-label">1. Выберите уровень сложности:</label>
+            <div class="exam-level-pills" role="radiogroup" aria-label="Уровень сложности">
+              <button type="button" class="exam-level-btn ${state.activeExamLevel === 'basic' ? 'active' : ''}" data-level="basic">
+                🟢 Базовый (разминка)
+              </button>
+              <button type="button" class="exam-level-btn ${state.activeExamLevel === 'medium' ? 'active' : ''}" data-level="medium">
+                🟡 Средний (⭐ готовиться лучше по нему)
+              </button>
+              <button type="button" class="exam-level-btn ${state.activeExamLevel === 'hard' ? 'active' : ''}" data-level="hard">
+                🔴 Сложный (для доп. подготовки)
+              </button>
+            </div>
+          </div>
+
+          <!-- Preset Variants Selector -->
+          <div class="exam-control-group">
+            <label class="exam-control-label">2. Или выберите готовый вариант из реальной КР:</label>
+            <div class="exam-preset-pills">
+              <button type="button" class="exam-preset-btn ${state.activeExamVariantId === 'variant-2' ? 'active' : ''}" data-variant="variant-2">
+                📄 Вариант № 2
+              </button>
+              <button type="button" class="exam-preset-btn ${state.activeExamVariantId === 'variant-3' ? 'active' : ''}" data-variant="variant-3">
+                📄 Вариант № 3
+              </button>
+              <button type="button" class="exam-preset-btn ${state.activeExamVariantId === 'variant-4' ? 'active' : ''}" data-variant="variant-4">
+                📄 Вариант № 4
+              </button>
+              <button type="button" class="exam-preset-btn ${!state.activeExamVariantId ? 'active' : ''}" data-variant="random">
+                🎲 Случайный вариант
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- GENERATED VARIANT SHEET -->
+        <div class="exam-variant-sheet" id="examVariantSheet">
+          ${renderGeneratedVariantSheet(state.generatedVariant)}
+        </div>
+      </section>
+
+      <!-- Section Separator & Heading -->
+      <div class="exam-syllabus-divider" id="examTasksDirectory">
+        <h2>📚 Полный каталог тем и алгоритмов (№ 1 — № 5)</h2>
+        <p>Изучите пошаговые алгоритмы решения, типичные подводные камни и разборы задач каждого типа:</p>
+      </div>
+
       <!-- Quick Jump Nav Pills -->
       <nav class="exam-nav-pills" aria-label="Быстрый переход к заданиям контрольной">
         ${d.tasks.map(t => `
           <a href="#${t.id}" class="exam-nav-pill">
             <span class="pill-num">№${t.num}</span>
-            <span>${t.code} (${t.title})</span>
+            <span>${t.title}</span>
           </a>
         `).join('')}
       </nav>
@@ -478,6 +616,35 @@ document.addEventListener('DOMContentLoaded', () => {
         ${d.tasks.map(task => renderExamTaskCard(task)).join('')}
       </div>
     `;
+
+    // Attach level buttons
+    examView.querySelectorAll('.exam-level-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        examView.querySelectorAll('.exam-level-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        state.activeExamLevel = btn.dataset.level;
+        state.activeExamVariantId = null;
+        examView.querySelectorAll('.exam-preset-btn').forEach(b => b.classList.remove('active'));
+        
+        state.generatedVariant = getExamVariant(state.activeExamLevel, null);
+        updateGeneratedVariantDOM();
+      });
+    });
+
+    // Attach preset variant buttons
+    examView.querySelectorAll('.exam-preset-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        examView.querySelectorAll('.exam-preset-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const vId = btn.dataset.variant === 'random' ? null : btn.dataset.variant;
+        state.activeExamVariantId = vId;
+        state.generatedVariant = getExamVariant(state.activeExamLevel, vId);
+        updateGeneratedVariantDOM();
+      });
+    });
+
+    // Attach event listeners inside the generated variant
+    attachVariantSheetEvents();
 
     // Attach click events on navigation pills to scroll smoothly
     examView.querySelectorAll('.exam-nav-pill').forEach(pill => {
@@ -503,6 +670,189 @@ document.addEventListener('DOMContentLoaded', () => {
             ],
             throwOnError: false
           });
+        }
+      });
+    });
+  }
+
+  // HTML of Generated Variant Sheet
+  function renderGeneratedVariantSheet(v) {
+    if (!v) return '<p>Вариант не сгенерирован</p>';
+    const isRunning = state.examTimerRunning;
+    const timeStr = formatExamTimer(state.examTimerSeconds);
+
+    return `
+      <div class="variant-sheet-header">
+        <div class="variant-sheet-title">
+          <h4>📝 ${v.title}</h4>
+          <span class="variant-level-badge">${v.levelName}</span>
+        </div>
+        
+        <!-- Timer Box -->
+        <div class="variant-timer-card">
+          <div class="timer-display-wrap">
+            <span class="timer-icon">⏱️</span>
+            <span class="timer-digits" id="examTimerDigits">${timeStr}</span>
+          </div>
+          <div class="timer-actions">
+            <button type="button" class="timer-btn ${isRunning ? 'timer-btn-pause' : 'timer-btn-start'}" id="examTimerToggleBtn">
+              ${isRunning ? '⏸ Пауза' : '▶ Старт (90 мин)'}
+            </button>
+            <button type="button" class="timer-btn timer-btn-reset" id="examTimerResetBtn" title="Сбросить таймер">
+              🔄 Сброс
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="variant-instructions-bar">
+        <span>💡 Совет:</span> Решите задания 1–5 на листе бумаги, не подглядывая. Закончив, нажмите «Показать решение и ответ» под каждым заданием для самопроверки.
+      </div>
+
+      <!-- 5 Variant Tasks -->
+      <div class="variant-problems-grid">
+        ${v.problems.map((prob, idx) => `
+          <div class="variant-problem-card">
+            <div class="variant-problem-header">
+              <span class="v-prob-num">Задание ${prob.taskNum}</span>
+              <span class="v-prob-title">${prob.taskTitle}</span>
+              <span class="v-prob-badge">${prob.label || 'Типовая задача'}</span>
+            </div>
+
+            <div class="variant-condition">
+              <strong>Условие:</strong>
+              <div>${prob.condition}</div>
+            </div>
+
+            <!-- Solution Reveal Toggle -->
+            <div class="variant-sol-toggle-wrap">
+              <button type="button" class="btn-reveal-solution" data-target="sol-${prob.id}">
+                <span class="reveal-icon">👁️</span>
+                <span class="reveal-text">Показать решение и ответ</span>
+                <span class="reveal-arrow">▼</span>
+              </button>
+            </div>
+
+            <div class="variant-solution-container" id="sol-${prob.id}" style="display: none;">
+              <div class="variant-quick-ans">
+                <strong>Краткий ответ:</strong>
+                <div>${prob.quickAnswer}</div>
+              </div>
+              <div class="variant-full-sol">
+                ${prob.fullSolution}
+              </div>
+              ${prob.examinerNotes ? `
+                <div class="variant-examiner-tip">
+                  <span>💡</span> <strong>На что обратить внимание:</strong> ${prob.examinerNotes}
+                </div>
+              ` : ''}
+            </div>
+          </div>
+        `).join('')}
+      </div>
+
+      <div class="variant-footer-actions">
+        <button type="button" class="btn-regen-variant" id="btnRegenVariant">
+          🎲 Сгенерировать другой вариант
+        </button>
+        <a href="#examTasksDirectory" class="link-scroll-tasks">
+          📖 Изучить алгоритмы по всем 5 темам ниже ↓
+        </a>
+      </div>
+    `;
+  }
+
+  // Update only the variant sheet DOM without full page flicker
+  function updateGeneratedVariantDOM() {
+    const sheetEl = document.getElementById('examVariantSheet');
+    if (!sheetEl) return;
+    sheetEl.innerHTML = renderGeneratedVariantSheet(state.generatedVariant);
+    attachVariantSheetEvents();
+    renderExamMath();
+  }
+
+  // Attach interactive events inside variant sheet
+  function attachVariantSheetEvents() {
+    const toggleBtn = document.getElementById('examTimerToggleBtn');
+    const resetBtn = document.getElementById('examTimerResetBtn');
+    const regenBtn = document.getElementById('btnRegenVariant');
+
+    if (toggleBtn) {
+      toggleBtn.addEventListener('click', () => {
+        if (state.examTimerRunning) {
+          // Pause
+          clearInterval(state.examTimerInterval);
+          state.examTimerRunning = false;
+          toggleBtn.textContent = '▶ Продолжить';
+          toggleBtn.className = 'timer-btn timer-btn-start';
+        } else {
+          // Start
+          state.examTimerRunning = true;
+          toggleBtn.textContent = '⏸ Пауза';
+          toggleBtn.className = 'timer-btn timer-btn-pause';
+          state.examTimerInterval = setInterval(() => {
+            if (state.examTimerSeconds > 0) {
+              state.examTimerSeconds--;
+              const digits = document.getElementById('examTimerDigits');
+              if (digits) digits.textContent = formatExamTimer(state.examTimerSeconds);
+            } else {
+              clearInterval(state.examTimerInterval);
+              state.examTimerRunning = false;
+              alert('⏰ Время вышло! 90 минут завершились. Проверьте свои решения.');
+              if (digits) digits.textContent = '00:00';
+            }
+          }, 1000);
+        }
+      });
+    }
+
+    if (resetBtn) {
+      resetBtn.addEventListener('click', () => {
+        clearInterval(state.examTimerInterval);
+        state.examTimerRunning = false;
+        state.examTimerSeconds = 90 * 60;
+        const digits = document.getElementById('examTimerDigits');
+        if (digits) digits.textContent = formatExamTimer(state.examTimerSeconds);
+        if (toggleBtn) {
+          toggleBtn.textContent = '▶ Старт (90 мин)';
+          toggleBtn.className = 'timer-btn timer-btn-start';
+        }
+      });
+    }
+
+    if (regenBtn) {
+      regenBtn.addEventListener('click', () => {
+        state.generatedVariant = getExamVariant(state.activeExamLevel, state.activeExamVariantId);
+        updateGeneratedVariantDOM();
+      });
+    }
+
+    // Solution reveal buttons
+    document.querySelectorAll('.btn-reveal-solution').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const targetId = btn.dataset.target;
+        const target = document.getElementById(targetId);
+        if (!target) return;
+        const isHidden = target.style.display === 'none';
+        target.style.display = isHidden ? 'block' : 'none';
+        btn.classList.toggle('active', isHidden);
+        const textSpan = btn.querySelector('.reveal-text');
+        const arrowSpan = btn.querySelector('.reveal-arrow');
+        if (isHidden) {
+          if (textSpan) textSpan.textContent = 'Скрыть решение и ответ';
+          if (arrowSpan) arrowSpan.textContent = '▲';
+          if (window.renderMathInElement) {
+            renderMathInElement(target, {
+              delimiters: [
+                { left: '$$', right: '$$', display: true },
+                { left: '$', right: '$', display: false }
+              ],
+              throwOnError: false
+            });
+          }
+        } else {
+          if (textSpan) textSpan.textContent = 'Показать решение и ответ';
+          if (arrowSpan) arrowSpan.textContent = '▼';
         }
       });
     });
@@ -585,7 +935,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         <!-- Problems Spoilers -->
         <div class="exam-problems-heading">
-          <span>📚</span> Типовые задачи с решениями для самопроверки (нажмите, чтобы развернуть):
+          <span>📚</span> Задачи по этой теме с подробными решениями (включая варианты 2, 3, 4):
         </div>
 
         <div class="exam-problems-list">
@@ -594,6 +944,9 @@ document.addEventListener('DOMContentLoaded', () => {
               <summary>
                 <div class="spoiler-title">
                   <span class="spoiler-label">${prob.label}</span>
+                  ${prob.difficulty === 'basic' ? '<span class="prob-diff-badge basic">Базовый</span>' : ''}
+                  ${prob.difficulty === 'medium' ? '<span class="prob-diff-badge medium">⭐ Рекомендуемый</span>' : ''}
+                  ${prob.difficulty === 'hard' ? '<span class="prob-diff-badge hard">Сложный</span>' : ''}
                 </div>
                 <div class="spoiler-cta">
                   Показать решение <span class="spoiler-arrow">▼</span>
@@ -668,11 +1021,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (colloquiumView) {
       colloquiumView.style.display = 'block';
 
-      if (!colloquiumView.dataset.rendered) {
-        renderColloquiumView();
-        renderColloquiumMath();
-        colloquiumView.dataset.rendered = 'true';
+      if (targetId && targetId.startsWith('ticket-')) {
+        state.activeColloqTicketId = targetId;
       }
+
+      renderColloquiumView();
+      renderColloquiumMath();
 
       if (targetId && targetId.startsWith('ticket-')) {
         setTimeout(() => {
@@ -689,13 +1043,16 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Render Full Colloquium View with 19 Tickets
+  // Render Full Colloquium View with Sticky Navigation & Focus Mode
   function renderColloquiumView() {
-    const d = (typeof COLLOQUIUM_DATA !== 'undefined') ? COLLOQUIUM_DATA : (typeof window !== 'undefined' ? window.COLLOQUIUM_DATA : null);
+    const d = (typeof COLLOQUIUM_DATA !== 'undefined') ? COLLOQUIUM_DATA : (window.COLLOQUIUM_DATA || null);
     if (!colloquiumView || !d) {
       console.warn('COLLOQUIUM_DATA or colloquiumView not found', { colloquiumView, d });
       return;
     }
+
+    const currentTicketId = state.activeColloqTicketId || 'ticket-1';
+    const isSingleMode = state.colloqMode === 'single';
 
     colloquiumView.innerHTML = `
       <!-- Colloquium Hero Banner -->
@@ -708,7 +1065,7 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="colloq-hero-badges">
             <span class="colloq-badge colloq-badge-count">📚 19 билетов</span>
             <span class="colloq-badge colloq-badge-source">📖 По учебнику С.Н. Ильина (КФУ)</span>
-            <span class="colloq-badge colloq-badge-proofs">⚡ Полные доказательства и ловушки</span>
+            <span class="colloq-badge colloq-badge-proofs">⚡ Подробные доказательства и частые вопросы</span>
           </div>
         </div>
 
@@ -730,42 +1087,114 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
       </section>
 
-      <!-- Thematic Block Filter Buttons -->
-      <div class="colloq-block-filter" role="tablist" aria-label="Фильтр билетов по блокам">
-        <button type="button" class="colloq-filter-btn active" data-block="all">Все билеты (1–19)</button>
-        ${d.blocks.map(b => `
-          <button type="button" class="colloq-filter-btn" data-block="${b.id}">${b.title} (${b.ticketsRange})</button>
-        `).join('')}
+      <!-- STICKY QUICK-NAVIGATION BAR (ALWAYS ACCESSIBLE WITHOUT SCROLLING UP) -->
+      <div class="colloq-sticky-bar" id="colloqStickyBar">
+        <div class="colloq-sticky-top-row">
+          <div class="colloq-sticky-title">
+            <span>Быстрый переход к билету:</span>
+          </div>
+          <div class="colloq-sticky-actions">
+            <!-- View Mode Switch -->
+            <button type="button" class="colloq-mode-toggle ${isSingleMode ? 'active' : ''}" id="colloqModeToggleBtn">
+              ${isSingleMode ? '📖 Режим одного билета (включен)' : '📜 Режим: все билеты подряд'}
+            </button>
+          </div>
+        </div>
+
+        <!-- Thematic Block Filter Buttons -->
+        <div class="colloq-block-filter" role="tablist" aria-label="Фильтр билетов по блокам">
+          <button type="button" class="colloq-filter-btn ${state.activeColloqBlock === 'all' ? 'active' : ''}" data-block="all">Все билеты (1–19)</button>
+          ${d.blocks.map(b => `
+            <button type="button" class="colloq-filter-btn ${state.activeColloqBlock === b.id ? 'active' : ''}" data-block="${b.id}">${b.title} (${b.ticketsRange})</button>
+          `).join('')}
+        </div>
+
+        <!-- Quick Jump Strip for 19 tickets -->
+        <nav class="colloq-nav-strip" aria-label="Номера билетов для мгновенного перехода">
+          ${d.tickets.map(t => `
+            <button type="button" class="colloq-strip-btn ${t.id === currentTicketId ? 'active' : ''}" data-ticket="${t.id}" data-block="${t.blockId}" title="Билет ${t.num}: ${t.title}">
+              ${t.num}
+            </button>
+          `).join('')}
+        </nav>
       </div>
 
-      <!-- Quick Jump Nav Pills for 19 tickets -->
-      <nav class="colloq-nav-pills" aria-label="Быстрый переход к билетам коллоквиума">
-        ${d.tickets.map(t => `
-          <a href="#${t.id}" class="colloq-nav-pill" data-block="${t.blockId}">
-            <span class="pill-num">№${t.num}</span>
-            <span>Билет ${t.num}</span>
-          </a>
-        `).join('')}
-      </nav>
-
-      <!-- Container with all 19 tickets -->
+      <!-- Container with Tickets (Single Mode or All Mode) -->
       <div class="colloq-tickets-container" id="colloqTicketsContainer">
-        ${d.tickets.map(ticket => renderColloquiumTicketCard(ticket)).join('')}
+        ${isSingleMode ? renderSingleColloquiumTicketView(d, currentTicketId) : renderAllColloquiumTicketsView(d)}
       </div>
+
+      <!-- Floating Action Button for easy return to top / tickets bar -->
+      <button type="button" class="floating-colloq-top" id="floatingColloqTop" title="Наверх к выбору билетов">
+        ↑ К выбору билетов
+      </button>
     `;
 
-    // Attach click events on navigation pills to scroll smoothly
-    colloquiumView.querySelectorAll('.colloq-nav-pill').forEach(pill => {
-      pill.addEventListener('click', (e) => {
-        const targetId = pill.getAttribute('href').replace('#', '');
-        const el = document.getElementById(targetId);
+    // Attach mode toggle handler
+    const modeBtn = document.getElementById('colloqModeToggleBtn');
+    if (modeBtn) {
+      modeBtn.addEventListener('click', () => {
+        state.colloqMode = state.colloqMode === 'single' ? 'all' : 'single';
+        renderColloquiumView();
+        renderColloquiumMath();
+      });
+    }
+
+    function switchColloquiumTicket(ticketId) {
+      state.activeColloqTicketId = ticketId;
+      history.pushState(null, null, `#${ticketId}`);
+
+      if (state.colloqMode === 'single') {
+        const container = document.getElementById('colloqTicketsContainer');
+        if (container) {
+          container.innerHTML = renderSingleColloquiumTicketView(d, ticketId);
+          attachColloqPagerEvents();
+          renderColloquiumMath();
+        }
+
+        // Center active strip button
+        colloquiumView.querySelectorAll('.colloq-strip-btn').forEach(b => {
+          const isCur = b.dataset.ticket === ticketId;
+          b.classList.toggle('active', isCur);
+          if (isCur) {
+            b.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+          }
+        });
+
+        const stickyBar = document.getElementById('colloqStickyBar');
+        if (stickyBar) {
+          stickyBar.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      } else {
+        colloquiumView.querySelectorAll('.colloq-strip-btn').forEach(b => b.classList.remove('active'));
+        const activeBtn = colloquiumView.querySelector(`.colloq-strip-btn[data-ticket="${ticketId}"]`);
+        if (activeBtn) {
+          activeBtn.classList.add('active');
+          activeBtn.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+        }
+        const el = document.getElementById(ticketId);
         if (el) {
-          e.preventDefault();
-          history.pushState(null, null, `#${targetId}`);
           colloquiumView.querySelectorAll('.colloq-ticket-card').forEach(c => c.classList.remove('focused'));
           el.classList.add('focused');
           el.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
+      }
+    }
+
+    function attachColloqPagerEvents() {
+      colloquiumView.querySelectorAll('.colloq-pager-btn').forEach(btn => {
+        btn.onclick = () => {
+          const targetId = btn.dataset.ticket;
+          if (targetId) switchColloquiumTicket(targetId);
+        };
+      });
+    }
+
+    // Attach strip button clicks
+    colloquiumView.querySelectorAll('.colloq-strip-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const ticketId = btn.dataset.ticket;
+        switchColloquiumTicket(ticketId);
       });
     });
 
@@ -777,8 +1206,19 @@ document.addEventListener('DOMContentLoaded', () => {
         const chosenBlock = btn.dataset.block;
         state.activeColloqBlock = chosenBlock;
 
+        // In single mode, if active ticket is not in chosen block, pick first ticket of block
+        if (state.colloqMode === 'single' && chosenBlock !== 'all') {
+          const firstInBlock = d.tickets.find(t => t.blockId === chosenBlock);
+          if (firstInBlock) {
+            state.activeColloqTicketId = firstInBlock.id;
+            renderColloquiumView();
+            renderColloquiumMath();
+            return;
+          }
+        }
+
         const ticketCards = colloquiumView.querySelectorAll('.colloq-ticket-card');
-        const navPills = colloquiumView.querySelectorAll('.colloq-nav-pill');
+        const stripBtns = colloquiumView.querySelectorAll('.colloq-strip-btn');
 
         ticketCards.forEach(card => {
           if (chosenBlock === 'all' || card.dataset.block === chosenBlock) {
@@ -788,7 +1228,7 @@ document.addEventListener('DOMContentLoaded', () => {
           }
         });
 
-        navPills.forEach(pill => {
+        stripBtns.forEach(pill => {
           if (chosenBlock === 'all' || pill.dataset.block === chosenBlock) {
             pill.style.display = 'inline-flex';
           } else {
@@ -797,6 +1237,27 @@ document.addEventListener('DOMContentLoaded', () => {
         });
       });
     });
+
+    attachColloqPagerEvents();
+
+    // Attach floating button
+    const floatBtn = document.getElementById('floatingColloqTop');
+    if (floatBtn) {
+      floatBtn.addEventListener('click', () => {
+        const stickyBar = document.getElementById('colloqStickyBar');
+        if (stickyBar) {
+          stickyBar.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } else {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      });
+
+      window.addEventListener('scroll', () => {
+        if (state.currentView === 'colloquium') {
+          floatBtn.style.display = window.scrollY > 400 ? 'flex' : 'none';
+        }
+      });
+    }
 
     // Attach spoiler toggle math renderer
     colloquiumView.querySelectorAll('.colloq-proof').forEach(spoiler => {
@@ -814,10 +1275,49 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // Render Single Focused Ticket
+  function renderSingleColloquiumTicketView(d, ticketId) {
+    const currentIdx = d.tickets.findIndex(t => t.id === ticketId);
+    const ticket = currentIdx !== -1 ? d.tickets[currentIdx] : d.tickets[0];
+    const prevTicket = currentIdx > 0 ? d.tickets[currentIdx - 1] : null;
+    const nextTicket = currentIdx < d.tickets.length - 1 ? d.tickets[currentIdx + 1] : null;
+
+    const pagerHtml = `
+      <div class="colloq-ticket-pager">
+        ${prevTicket ? `
+          <button type="button" class="colloq-pager-btn prev" data-ticket="${prevTicket.id}">
+            ← Билет №${prevTicket.num}
+          </button>
+        ` : `<span></span>`}
+        
+        <div class="colloq-pager-indicator">
+          <strong>Билет ${ticket.num}</strong> из ${d.tickets.length}
+        </div>
+
+        ${nextTicket ? `
+          <button type="button" class="colloq-pager-btn next" data-ticket="${nextTicket.id}">
+            Билет №${nextTicket.num} →
+          </button>
+        ` : `<span></span>`}
+      </div>
+    `;
+
+    return `
+      ${pagerHtml}
+      ${renderColloquiumTicketCard(ticket)}
+      ${pagerHtml}
+    `;
+  }
+
+  // Render All Tickets sequentially
+  function renderAllColloquiumTicketsView(d) {
+    return d.tickets.map(ticket => renderColloquiumTicketCard(ticket)).join('');
+  }
+
   // Render a Single Ticket Card
   function renderColloquiumTicketCard(ticket) {
     return `
-      <article class="colloq-ticket-card" id="${ticket.id}" data-block="${ticket.blockId}">
+      <article class="colloq-ticket-card focused" id="${ticket.id}" data-block="${ticket.blockId}">
         <header class="colloq-ticket-header">
           <div class="colloq-ticket-meta">
             <span class="colloq-ticket-num-badge">Билет №${ticket.num}</span>
