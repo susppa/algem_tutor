@@ -748,6 +748,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="variant-problem-header">
               <span class="v-prob-num">Задание ${prob.taskNum}</span>
               <span class="v-prob-title">${prob.taskTitle}</span>
+              ${prob.source ? `<span class="prob-source-badge">📖 ${prob.source}</span>` : ''}
               <span class="v-prob-badge">${prob.label || 'Типовая задача'}</span>
             </div>
 
@@ -976,6 +977,7 @@ document.addEventListener('DOMContentLoaded', () => {
               <summary>
                 <div class="spoiler-title">
                   <span class="spoiler-label">${prob.label}</span>
+                  ${prob.source ? `<span class="prob-source-badge">📖 ${prob.source}</span>` : ''}
                   ${prob.difficulty === 'basic' ? '<span class="prob-diff-badge basic">Базовый</span>' : ''}
                   ${prob.difficulty === 'medium' ? '<span class="prob-diff-badge medium">⭐ Рекомендуемый</span>' : ''}
                   ${prob.difficulty === 'hard' ? '<span class="prob-diff-badge hard">Сложный</span>' : ''}
